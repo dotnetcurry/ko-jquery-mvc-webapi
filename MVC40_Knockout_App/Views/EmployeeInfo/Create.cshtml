@@ -1,0 +1,198 @@
+﻿@{
+    ViewBag.Title = "Create";
+}
+<html>
+<h2>Create</h2>
+<head>
+    <script src="~/Scripts/jquery-1.8.2.js"></script>
+    <script src="~/Scripts/knockout-2.2.0.js"></script>
+    <script src="~/Scripts/knockout.mapping-latest.js"></script>
+    <link href="~/Content/Site.css" rel="stylesheet" />
+</head>
+<body>
+    <form>
+        <table>
+            <tr>
+                <td>
+                    <!--Bind the TextBoxes in the Table to the observable properties defined into the ViewModel -->
+                    <table id="tbldml">
+                        <tr>
+                            <td>EmpNo</td>
+                            <td>
+                                <input type="text" id="txteno" data-bind="value: $root.EmpNo" disabled="disabled" /></td>
+                        </tr>
+                        <tr>
+                            <td>EmpName</td>
+                            <td>
+                                <input type="text" id="txtename" data-bind="value: $root.EmpName" /></td>
+                        </tr>
+                        <tr>
+                            <td>Salary</td>
+                            <td>
+                                <input type="text" id="txtsal" data-bind="value: $root.Salary" /></td>
+                        </tr>
+                        <tr>
+                            <td>DeptName</td>
+                            <td>
+                                <input type="text" id="txtdname" data-bind="value: $root.DeptName" /></td>
+                        </tr>
+                        <tr>
+                            <td>Designation</td>
+                            <td>
+                                <input type="text" id="txtdesig" data-bind="value: $root.Designation" /></td>
+                        </tr>
+                        <tr>
+                            <!--The click binding has the JavaScirpt methods passed to it-->
+                            <td>
+                                <button data-bind="click :$root.save">Save</button></td>
+                            <td>
+                                <button data-bind="click: $root.update">Update</button></td>
+                        </tr>
+                    </table>
+                </td>
+                <td>
+                    <div class="FixedContainer">
+                        <!--If the lenght of the Employees is greater than 0 then visible the Table-->
+                        <table data-bind="visible:  Employees().length>0" style="border: double">
+                            <thead>
+                                <tr>
+                                    <td>EmpNo</td>
+                                    <td>EmpName</td>
+                                    <td>Salary</td>
+                                    <td>DeptName</td>
+                                    <td>Designation</td>
+                                    <td></td>
+                                </tr>
+                            </thead>
+                            <!--Iterate through an observableArray using foreach-->
+                            <tbody data-bind="foreach:  Employees">
+                                <tr style="border: solid" data-bind="click: $root.getselectedemployee" id="updtr">
+                                    <td><span data-bind="text:  EmpNo"></span></td>
+                                    <td><span data-bind="text:  EmpName"></span></td>
+                                    <td><span data-bind="text: Salary"></span></td>
+                                    <td><span data-bind="text: DeptName"></span></td>
+                                    <td><span data-bind="text: Designation"></span></td>
+                                    <td>
+                                        <button data-bind="click: $root.deleterec">Delete</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+    </form>
+    <script type="text/javascript">
+        var EmpViewModel = function () {
+            //Make the self as 'this' reference
+            var self = this;
+            //Declare observable which will be bind with UI 
+            self.EmpNo = ko.observable("0");
+            self.EmpName = ko.observable("");
+            self.Salary = ko.observable("");
+            self.DeptName = ko.observable("");
+            self.Designation = ko.observable("");
+
+            //The Object which stored data entered in the observables
+            var EmpData = {
+                EmpNo: self.EmpNo,
+                EmpName: self.EmpName,
+                Salary: self.Salary,
+                DeptName: self.DeptName,
+                Designation: self.Designation
+            };
+
+            //Declare an ObservableArray for Storing the JSON Response
+            self.Employees = ko.observableArray([]);
+
+            GetEmployees(); //Call the Function which gets all records using ajax call
+
+            //Function to perform POST (insert Employee) operation
+            self.save = function () {
+                //Ajax call to Insert the Employee
+                $.ajax({
+                    type: "POST",
+                    url: "/api/EmployeeInfoAPI",
+                    data: ko.toJSON(EmpData), //Convert the Observable Data into JSON
+                    contentType: "application/json",
+                    success: function (data) {
+                        alert("Record Added Successfully");
+                        self.EmpNo(data.EmpNo);
+                        alert("The New Employee Id :" + self.EmpNo());
+                        GetEmployees();
+                    },
+                    error: function () {
+                        alert("Failed");
+                    }
+                });
+                //Ends Here
+            };
+
+            self.update = function () {
+                var url = "/api/EmployeeInfoAPI/" + self.EmpNo();
+                alert(url);
+                $.ajax({
+                    type: "PUT",
+                    url: url,
+                    data: ko.toJSON(EmpData),
+                    contentType: "application/json",
+                    success: function (data) {
+                        alert("Record Updated Successfully");
+                        GetEmployees();
+                    },
+                    error: function (error) {
+                        alert(error.status + "<!----!>" + error.statusText);
+                    }
+                });
+            };
+
+            //Function to perform DELETE Operation
+            self.deleterec = function (employee) {
+                $.ajax({
+                    type: "DELETE",
+                    url: "/api/EmployeeInfoAPI/" + employee.EmpNo,
+                    success: function (data) {
+                        alert("Record Deleted Successfully");
+                        GetEmployees();//Refresh the Table
+                    },
+                    error: function (error) {
+                        alert(error.status + "<--and--> " + error.statusText);
+                    }
+                });
+                // alert("Clicked" + employee.EmpNo)
+            };
+
+            //Function to Read All Employees
+            function GetEmployees() {
+                //Ajax Call Get All Employee Records
+                $.ajax({
+                    type: "GET",
+                    url: "/api/EmployeeInfoAPI",
+                    contentType: "application/json; charset=utf-8",
+                    dataType: "json",
+                    success: function (data) {
+                        self.Employees(data); //Put the response in ObservableArray
+                    },
+                    error: function (error) {
+                        alert(error.status + "<--and--> " + error.statusText);
+                    }
+                });
+                //Ends Here
+            }
+
+            //Function to Display record to be updated
+            self.getselectedemployee = function (employee) {
+                self.EmpNo(employee.EmpNo),
+                self.EmpName(employee.EmpName),
+                self.Salary(employee.Salary),
+                self.DeptName(employee.DeptName),
+                self.Designation(employee.Designation)
+            };
+
+
+        };
+        ko.applyBindings(new EmpViewModel());
+    </script>
+</body>
+</html>
